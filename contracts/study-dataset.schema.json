@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lubacareer/Nasa2/contracts/study-dataset.schema.json",
+  "title": "Synthetic study dataset, version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "title", "provenance", "units", "polarization", "grid", "histogramEdgesDb", "acquisitions"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "id": {"type": "string", "minLength": 1},
+    "title": {"type": "string", "minLength": 1},
+    "units": {"const": "gamma0_db"},
+    "polarization": {"const": "HH"},
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "description", "generatorVersion", "seed", "productIds"],
+      "properties": {
+        "kind": {"const": "synthetic"},
+        "description": {"type": "string", "minLength": 1},
+        "generatorVersion": {"type": "string", "minLength": 1},
+        "seed": {"type": "integer"},
+        "productIds": {"type": "array", "maxItems": 0, "items": {"type": "string"}}
+      }
+    },
+    "grid": {
+      "type": "object", "additionalProperties": false,
+      "required": ["width", "height", "order", "coordinateSystem", "roiMask"],
+      "properties": {
+        "width": {"type": "integer", "minimum": 1},
+        "height": {"type": "integer", "minimum": 1},
+        "order": {"const": "row-major"},
+        "coordinateSystem": {"const": "synthetic"},
+        "roiMask": {"type": "array", "minItems": 1, "items": {"type": "boolean"}}
+      }
+    },
+    "histogramEdgesDb": {
+      "type": "array",
+      "minItems": 3,
+      "items": {"type": "number"},
+      "contains": {"const": 0}
+    },
+    "acquisitions": {
+      "type": "array", "minItems": 2,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "day", "availability", "valuesDb", "summary"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "day": {"type": "integer", "minimum": 1},
+          "availability": {"enum": ["available", "missing"]},
+          "valuesDb": {"oneOf": [{"type": "null"}, {"type": "array", "items": {"type": ["number", "null"]}}]},
+          "summary": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/summary"}]}
+        },
+        "allOf": [
+          {"if": {"properties": {"availability": {"const": "missing"}}}, "then": {"properties": {"valuesDb": {"type": "null"}, "summary": {"type": "null"}}}, "else": {"properties": {"valuesDb": {"type": "array"}}}}
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "summary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["medianDb", "q25Db", "q75Db", "validCount"],
+      "properties": {
+        "medianDb": {"type": "number"},
+        "q25Db": {"type": "number"},
+        "q75Db": {"type": "number"},
+        "validCount": {"type": "integer", "minimum": 1}
+      }
+    }
+  }
+}
