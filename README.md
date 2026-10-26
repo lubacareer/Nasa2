@@ -15,6 +15,8 @@ npm run dev
 
 Open <http://127.0.0.1:5180>. The frontend serves its committed preview fixture locally; no Earthdata account, API key, hosted backend, or paid service is required.
 
+Before running `npm ci` again, stop this project's development server with **Ctrl+C** in its terminal. On Windows, a running Vite process can lock the native Rolldown binding and interrupt dependency installation with `EPERM`. After stopping it, rerun `npm ci`, then `npm run dev`.
+
 To install the Python environment and verify the fixture:
 
 ```powershell
@@ -36,7 +38,7 @@ uv run --project processing python -m nisar_preview generate
 - Switch the spatial view between Before, After, and Change. The URL preserves selections through refresh and browser navigation.
 - Open Methods and Data table for calculation details, source labels, and values available without hovering.
 
-The time-series band is a **spatial interquartile range**, not a confidence interval. Missing acquisition day 37 remains a gap. Blue and orange encode decreased and increased radar backscatter; they do not classify water.
+The time-series band is a **spatial interquartile range**, not a confidence interval. Missing acquisition day 37 remains a gap. Blue shows backscatter decreases; orange shows increases or zero change. These colors do not classify water.
 
 ## Project structure
 

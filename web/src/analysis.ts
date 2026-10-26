@@ -12,6 +12,24 @@ export interface PairAnalysis {
   bins: HistogramBin[];
 }
 
+/** Find display limits in one pass without flattening grids or spreading unbounded argument lists. */
+export function findExtent(
+  arrays: Iterable<readonly (number | null)[] | null>,
+  fallback: readonly [number, number],
+): [number, number] {
+  let minimum = Infinity;
+  let maximum = -Infinity;
+  for (const values of arrays) {
+    if (values === null) continue;
+    for (const value of values) {
+      if (value === null || !Number.isFinite(value)) continue;
+      if (value < minimum) minimum = value;
+      if (value > maximum) maximum = value;
+    }
+  }
+  return minimum === Infinity ? [fallback[0], fallback[1]] : [minimum, maximum];
+}
+
 /** Bin already prepared dB differences; the final bin includes its right edge. */
 export function binDifferences(
   valuesDb: readonly (number | null)[],

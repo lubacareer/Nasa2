@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { Acquisition, StudyDataset } from '../../../contracts/dataset';
-import type { PairAnalysis } from '../analysis';
+import { findExtent, type PairAnalysis } from '../analysis';
 import type { SpatialView } from '../viewState';
 import { EChart } from './EChart';
 
@@ -23,8 +23,9 @@ interface TimelineProps {
 export function TimeSeries({ dataset, beforeId, afterId }: TimelineProps) {
   const option = useMemo<EChartsCoreOption | null>(() => {
     const observations = dataset.acquisitions;
-    const extents = observations.flatMap((item) => item.summary ? [item.summary.q25Db, item.summary.q75Db] : []);
-    if (extents.length === 0) return null;
+    const bounds = observations.flatMap((item) => item.summary ? [[item.summary.q25Db, item.summary.q75Db]] : []);
+    if (bounds.length === 0) return null;
+    const [minimum, maximum] = findExtent(bounds, [-18, -6]);
     return {
       animation: false,
       textStyle: { fontFamily: FONT, color: INK },
@@ -38,7 +39,7 @@ export function TimeSeries({ dataset, beforeId, afterId }: TimelineProps) {
         splitLine: { lineStyle: { color: GRID } },
       },
       yAxis: {
-        type: 'value', min: Math.floor(Math.min(...extents) / 2) * 2, max: Math.ceil(Math.max(...extents) / 2) * 2,
+        type: 'value', min: Math.floor(minimum / 2) * 2, max: Math.ceil(maximum / 2) * 2,
         name: 'γ⁰ (dB)', nameGap: 12, nameTextStyle: { fontSize: 12, color: MUTED },
         axisLabel: { fontSize: 12, color: MUTED }, splitLine: { lineStyle: { color: GRID } },
       },
@@ -115,11 +116,11 @@ export function Histogram({ pair, edges }: { pair: PairAnalysis; edges: number[]
   return <>
     <div className="chart-legend">
       <span><i className="legend-swatch" style={{ background: BLUE }} />Backscatter decrease</span>
-      <span><i className="legend-swatch" style={{ background: ORANGE }} />Backscatter increase</span>
+      <span><i className="legend-swatch" style={{ background: ORANGE }} />Backscatter increase or zero</span>
     </div>
     {pair.validCount === 0
       ? <p className="empty-state" role="status">No overlapping valid pixels for this comparison.</p>
-      : <EChart option={option} label={`Synthetic paired-pixel change distribution. ${pair.validCount} valid paired pixels. Differences are after minus before, in decibels. Blue indicates backscatter decrease and orange indicates increase.`} className="histogram-chart" testId="change-histogram" />}
+      : <EChart option={option} label={`Synthetic paired-pixel change distribution. ${pair.validCount} valid paired pixels. Differences are after minus before, in decibels. Blue indicates backscatter decrease. Orange bins contain nonnegative backscatter differences, including exact zeros.`} className="histogram-chart" testId="change-histogram" />}
   </>;
 }
 
@@ -177,9 +178,8 @@ export function SpatialGrid({ dataset, before, after, pair, view }: {
 }) {
   const hatchId = useId().replace(/:/g, '');
   const domain = useMemo(() => {
-    const values = dataset.acquisitions.flatMap((item) => item.valuesDb?.filter((value): value is number => value !== null) ?? []);
-    if (values.length === 0) return [-18, -6];
-    return [Math.floor(Math.min(...values)), Math.ceil(Math.max(...values))];
+    const [minimum, maximum] = findExtent(dataset.acquisitions.map((item) => item.valuesDb), [-18, -6]);
+    return [Math.floor(minimum), Math.ceil(maximum)];
   }, [dataset]);
   const changeMax = Math.max(Math.abs(dataset.histogramEdgesDb[0]), Math.abs(dataset.histogramEdgesDb.at(-1) ?? 6));
   const values = view === 'change' ? pair.valuesDb : view === 'before' ? before.valuesDb : after.valuesDb;

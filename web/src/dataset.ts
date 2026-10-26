@@ -114,12 +114,17 @@ export function validateDataset(value: unknown): StudyDataset {
   }
   // Every possible selected pair must fit the shared histogram range.
   for (let i = 0; i < size; i++) {
-    const values = value.acquisitions.flatMap((a) =>
-      a.valuesDb?.[i] == null ? [] : [a.valuesDb[i] as number],
-    );
+    let minimum = Infinity;
+    let maximum = -Infinity;
+    for (const acquisition of value.acquisitions) {
+      const cell = acquisition.valuesDb?.[i];
+      if (cell == null) continue;
+      minimum = Math.min(minimum, cell);
+      maximum = Math.max(maximum, cell);
+    }
     if (
-      values.length > 1 &&
-      Math.max(...values) - Math.min(...values) > edges.at(-1)!
+      minimum !== Infinity &&
+      maximum - minimum > edges.at(-1)!
     ) {
       throw new Error(
         'Invalid data package: histogram edges do not cover all paired changes.',

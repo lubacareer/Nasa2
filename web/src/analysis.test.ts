@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Acquisition, StudyDataset } from '../../contracts/dataset';
-import { analyzePair, binDifferences } from './analysis';
+import { analyzePair, binDifferences, findExtent } from './analysis';
 
 const acquisition = (id: string, valuesDb: (number | null)[]): Acquisition => ({
   id, day: id === 'before' ? 1 : 2, availability: 'available', valuesDb, summary: null,
@@ -10,6 +10,18 @@ const dataset = {
   grid: { width: 5, height: 1, roiMask: [true, true, true, true, false] },
   histogramEdgesDb: [-6, -2, 0, 2, 6],
 } as StudyDataset;
+
+describe('display extents', () => {
+  it('handles more than 200,000 cells without spreading them into function arguments', () => {
+    const values = Array.from({ length: 200_001 }, (_, index) => index === 100_000 ? null : (index % 401) - 200);
+    expect(findExtent([values, null], [-18, -6])).toEqual([-200, 200]);
+  });
+
+  it('retains genuine zeros and uses finite fallback limits for entirely invalid grids', () => {
+    expect(findExtent([[-10, 0], null], [-18, -6])).toEqual([-10, 0]);
+    expect(findExtent([[], [null, Number.NaN, Infinity], null], [-18, -6])).toEqual([-18, -6]);
+  });
+});
 
 describe('paired backscatter analysis', () => {
   it('subtracts after minus before and intersects the valid scene/ROI masks, preserving zero', () => {

@@ -25,7 +25,7 @@ TypeScript bins differences once using fixed symmetric package edges. Each bin i
 | Histogram | Paired valid-cell counts by signed dB change; visible zero reference |
 | Spatial view | Schematic grid; common before/after scale, symmetric change scale, visibly invalid cells |
 
-Blue and orange mean decreased and increased backscatter, not more/less water, damage, or recovery. Calm water can reduce radar return while inundated vegetation and other conditions can increase it. Interpretation requires a documented method and independent evidence. Sources: [ASF GCOV](https://nisar-docs.asf.alaska.edu/gcov/), [ASF amplitude](https://nisar-docs.asf.alaska.edu/amplitude/), [NASA SAR overview](https://nisar.jpl.nasa.gov/mission/get-to-know-sar/overview/).
+Blue means decreased backscatter; orange means increased or unchanged backscatter. These colors do not mean more/less water, damage, or recovery. Calm water can reduce radar return while inundated vegetation and other conditions can increase it. Interpretation requires a documented method and independent evidence. Sources: [ASF GCOV](https://nisar-docs.asf.alaska.edu/gcov/), [ASF amplitude](https://nisar-docs.asf.alaska.edu/amplitude/), [NASA SAR overview](https://nisar.jpl.nasa.gov/mission/get-to-know-sar/overview/).
 
 ## Validation
 
@@ -34,3 +34,5 @@ Python and the frontend validate version 1 with structural and semantic checks, 
 An available acquisition can contain no valid cells: its grid is all `null`, its summary is `null`, and its coverage is 0%. This is distinct from a missing acquisition, which has no grid and uses a hollow coverage marker. Empty datasets retain finite spatial scales and explicit empty plots.
 
 Python remains the producer of all acquisition summaries. The browser independently verifies their type 7 quartiles against the received valid cells within 1e-9 dB at the loading boundary, rejecting stale or edited summaries without replacing them. Histogram edges must include zero so one bin cannot mix backscatter decreases and increases under a single color.
+
+Exact zero differences remain in the histogram bin beginning at 0 dB. Its orange legend says “Backscatter increase or zero” so unchanged cells are not described as increases.
