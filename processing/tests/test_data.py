@@ -68,6 +68,13 @@ def test_fixture_has_fixed_footprint_real_gaps_and_bounded_pair_differences():
                     assert -6 <= second - first <= 6
 
 
+def test_histogram_bins_must_not_span_both_change_directions():
+    dataset = generate_dataset()
+    dataset["histogramEdgesDb"] = [-6, -2, 2, 6]
+    with pytest.raises(ValidationError, match="does not contain items"):
+        validate_dataset(dataset)
+
+
 @pytest.mark.parametrize(
     "mutation",
     ["version", "missing", "length", "summary", "roi", "order", "edges", "nan", "available"],

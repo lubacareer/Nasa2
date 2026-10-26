@@ -4,6 +4,18 @@ import type { StudyDataset } from '../../contracts/dataset';
 
 const validate = new Ajv2020({ allErrors: true }).compile<StudyDataset>(schema);
 
+/** Independently check producer summaries using the contract's type 7 quantile. */
+function validationQuantile(
+  sorted: readonly number[],
+  probability: number,
+): number {
+  const position = (sorted.length - 1) * probability;
+  const lower = Math.floor(position);
+  const upper = Math.ceil(position);
+  return sorted[lower] + (sorted[upper] - sorted[lower]) * (position - lower);
+}
+
+/** Reject malformed or inconsistent handoffs without replacing Python's prepared values. */
 export function validateDataset(value: unknown): StudyDataset {
   if (
     typeof value === 'object' &&
@@ -46,6 +58,7 @@ export function validateDataset(value: unknown): StudyDataset {
         'Invalid data package: acquisition grid size is inconsistent.',
       );
     let validCount = 0;
+    const validValues: number[] = [];
     for (let i = 0; i < size; i++) {
       if (valuesDb[i] !== null) {
         if (!value.grid.roiMask[i])
@@ -53,6 +66,7 @@ export function validateDataset(value: unknown): StudyDataset {
             'Invalid data package: a cell outside the study mask contains data.',
           );
         validCount++;
+        validValues.push(valuesDb[i] as number);
       }
     }
     if (validCount === 0) {
@@ -62,11 +76,16 @@ export function validateDataset(value: unknown): StudyDataset {
         );
       continue;
     }
+    validValues.sort((a, b) => a - b);
     if (
       !summary ||
       summary.validCount !== validCount ||
       summary.q25Db > summary.medianDb ||
-      summary.medianDb > summary.q75Db
+      summary.medianDb > summary.q75Db ||
+      Math.abs(summary.medianDb - validationQuantile(validValues, 0.5)) >
+        1e-9 ||
+      Math.abs(summary.q25Db - validationQuantile(validValues, 0.25)) > 1e-9 ||
+      Math.abs(summary.q75Db - validationQuantile(validValues, 0.75)) > 1e-9
     ) {
       throw new Error(
         'Invalid data package: inconsistent acquisition summary.',
@@ -110,6 +129,7 @@ export function validateDataset(value: unknown): StudyDataset {
   return value;
 }
 
+/** Load the local preview with cancellation; JSON and contract failures stay user-visible. */
 export async function loadDataset(signal: AbortSignal): Promise<StudyDataset> {
   const response = await fetch(`${import.meta.env.BASE_URL}data/preview.json`, {
     signal,

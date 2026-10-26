@@ -7,6 +7,21 @@ const fixture = JSON.parse(
 );
 
 describe('data package boundary', () => {
+  it.each(['medianDb', 'q25Db', 'q75Db'])(
+    'rejects an altered %s even when summary values remain ordered',
+    (field) => {
+      const data = structuredClone(fixture);
+      data.acquisitions[0].summary[field] += 0.01;
+      expect(() => validateDataset(data)).toThrow(
+        /inconsistent acquisition summary/i,
+      );
+    },
+  );
+  it('rejects bins spanning zero so decreases and increases cannot share a color', () => {
+    const data = structuredClone(fixture);
+    data.histogramEdgesDb = [-6, -2, 2, 6];
+    expect(() => validateDataset(data)).toThrow(/invalid data package/i);
+  });
   it('accepts an available acquisition with zero valid coverage and no summary', () => {
     const data = structuredClone(fixture);
     data.acquisitions[0].valuesDb.fill(null);

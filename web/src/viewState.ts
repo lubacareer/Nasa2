@@ -8,10 +8,12 @@ export interface ViewState {
   view: SpatialView;
 }
 
+/** Empty but acquired grids remain selectable; missing acquisitions have no array and are excluded. */
 export function availableAcquisitions(dataset: StudyDataset): Acquisition[] {
   return dataset.acquisitions.filter((acquisition) => acquisition.availability === 'available' && acquisition.valuesDb !== null);
 }
 
+/** Prefer preview days 25/61, falling back to a chronological pair when a validated package differs. */
 export function defaultViewState(dataset: StudyDataset): ViewState {
   const available = availableAcquisitions(dataset);
   if (available.length < 2) throw new Error('At least two available acquisitions are required.');
@@ -25,6 +27,7 @@ export function defaultViewState(dataset: StudyDataset): ViewState {
   };
 }
 
+/** Restore only available, chronological URL selections; stale or invalid pairs use package defaults. */
 export function parseViewState(search: string, dataset: StudyDataset): ViewState {
   const defaults = defaultViewState(dataset);
   const parameters = new URLSearchParams(search);

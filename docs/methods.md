@@ -32,3 +32,5 @@ Blue and orange mean decreased and increased backscatter, not more/less water, d
 Python and the frontend validate version 1 with structural and semantic checks, including dimensions, chronology, masks, finite values, and missing-observation state. Unsupported or malformed packages produce a visible error. No paired valid cells produces an empty state, not zero change.
 
 An available acquisition can contain no valid cells: its grid is all `null`, its summary is `null`, and its coverage is 0%. This is distinct from a missing acquisition, which has no grid and uses a hollow coverage marker. Empty datasets retain finite spatial scales and explicit empty plots.
+
+Python remains the producer of all acquisition summaries. The browser independently verifies their type 7 quartiles against the received valid cells within 1e-9 dB at the loading boundary, rejecting stale or edited summaries without replacing them. Histogram edges must include zero so one bin cannot mix backscatter decreases and increases under a single color.

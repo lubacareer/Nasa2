@@ -28,6 +28,7 @@ type LoadState =
   | { status: 'ready'; dataset: StudyDataset }
   | { status: 'error'; message: string };
 
+/** Explain the synthetic provenance and scientific limits alongside the plots. */
 function Methods() {
   return (
     <div className="methods-copy">
@@ -77,6 +78,7 @@ function Methods() {
   );
 }
 
+/** Keep provenance visible through loading, validation errors, and the ready workbench. */
 export function App() {
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
   const [attempt, setAttempt] = useState(0);
@@ -170,6 +172,7 @@ export function App() {
   );
 }
 
+/** Coordinate one selected acquisition pair across charts, tables, and browser history. */
 function Workbench({
   dataset,
   tableOpen,

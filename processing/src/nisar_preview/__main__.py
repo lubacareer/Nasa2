@@ -13,6 +13,14 @@ from .data import FIXTURE_PATH, generate_dataset, serialize_dataset, validate_da
 
 
 def main() -> int:
+    """Run fixture generation or validation and return a process exit status.
+
+    ``generate`` writes the prepared synthetic package; ``generate --check``
+    compares it with the existing package without changing files. ``validate``
+    checks the shared schema and scientific relationships for a supplied path,
+    defaulting to the repository fixture. Dataset and file errors return 1;
+    successful operations return 0. Argument errors follow argparse's exit rules.
+    """
     parser = argparse.ArgumentParser(
         description="Prepare or validate the synthetic preview dataset"
     )

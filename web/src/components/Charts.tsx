@@ -19,6 +19,7 @@ interface TimelineProps {
   afterId: string;
 }
 
+/** Plot Python-prepared spatial summaries without interpolating missing or empty acquisitions. */
 export function TimeSeries({ dataset, beforeId, afterId }: TimelineProps) {
   const option = useMemo<EChartsCoreOption | null>(() => {
     const observations = dataset.acquisitions;
@@ -83,6 +84,7 @@ export function TimeSeries({ dataset, beforeId, afterId }: TimelineProps) {
   </>;
 }
 
+/** Display the shared paired-pixel counts with fixed bins, so date comparisons keep the same scale. */
 export function Histogram({ pair, edges }: { pair: PairAnalysis; edges: number[] }) {
   const option = useMemo<EChartsCoreOption>(() => ({
     animation: false,
@@ -121,6 +123,7 @@ export function Histogram({ pair, edges }: { pair: PairAnalysis; edges: number[]
   </>;
 }
 
+/** Distinguish missing acquisitions from available acquisitions with zero valid pixels in the fixed ROI. */
 export function Coverage({ dataset, beforeId, afterId }: TimelineProps) {
   const element = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(640);
@@ -158,11 +161,13 @@ export function Coverage({ dataset, beforeId, afterId }: TimelineProps) {
   </div>;
 }
 
+/** Map a normalized scalar into a bounded RGB ramp; this encodes backscatter, not water classes. */
 function interpolate(from: number[], to: number[], fraction: number): string {
   const t = Math.max(0, Math.min(1, fraction));
   return `rgb(${from.map((value, index) => Math.round(value + (to[index] - value) * t)).join(',')})`;
 }
 
+/** Render the row-major schematic grid, preserving invalid cells and shared before/after color limits. */
 export function SpatialGrid({ dataset, before, after, pair, view }: {
   dataset: StudyDataset;
   before: Acquisition;

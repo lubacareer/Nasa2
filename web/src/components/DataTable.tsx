@@ -4,6 +4,7 @@ import type { PairAnalysis } from '../analysis';
 const number = (value: number | null | undefined) =>
   value == null ? 'No data' : value.toFixed(2);
 
+/** Expose prepared summaries and paired cells without requiring plot hover interactions. */
 export function DataTable({
   dataset,
   before,
