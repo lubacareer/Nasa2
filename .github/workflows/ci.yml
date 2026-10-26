@@ -21,8 +21,6 @@ jobs:
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
       options: --ipc=host
-    env:
-      TEST_ARTIFACT_DIR: ${{ runner.temp }}/calculation-functional
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -45,11 +43,13 @@ jobs:
       - run: npm test
       - run: npm run test:runner
       - run: npm run test:e2e
+        env:
+          TEST_ARTIFACT_DIR: ${{ runner.temp }}/calculation-functional
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: calculation-functional-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ env.TEST_ARTIFACT_DIR }}
+          path: ${{ runner.temp }}/calculation-functional
           retention-days: 7
           if-no-files-found: warn
 
