@@ -4,7 +4,7 @@ import type { PairAnalysis } from '../analysis';
 const number = (value: number | null | undefined) =>
   value == null ? 'No data' : value.toFixed(2);
 
-/** Expose prepared summaries and paired cells without requiring plot hover interactions. */
+/** Expose prepared summaries, plotted bin counts, and paired cells without plot hover. */
 export function DataTable({
   dataset,
   before,
@@ -62,6 +62,40 @@ export function DataTable({
                     ? 'No data'
                     : (a.summary?.validCount ?? 0)}
                 </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div
+        className="table-scroll"
+        tabIndex={0}
+        role="region"
+        aria-label="Histogram bin counts table"
+      >
+        <table>
+          <caption>
+            Histogram bin counts · Day {after.day} minus Day {before.day}. Every
+            bin includes its lower edge; only the final bin includes its upper
+            edge.
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Lower edge (dB)</th>
+              <th scope="col">Upper edge (dB)</th>
+              <th scope="col">Upper edge</th>
+              <th scope="col">Paired pixels</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pair.bins.map((bin, index) => (
+              <tr key={bin.start}>
+                <th scope="row">{String(bin.start)}</th>
+                <td>{String(bin.end)}</td>
+                <td>
+                  {index === pair.bins.length - 1 ? 'included' : 'excluded'}
+                </td>
+                <td>{bin.count}</td>
               </tr>
             ))}
           </tbody>

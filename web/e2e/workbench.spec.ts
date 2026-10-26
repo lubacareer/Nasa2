@@ -1,15 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { expectNoOverflow, syntheticLabel } from './calculation-reference';
 import type { StudyDataset } from '../../contracts/dataset';
-
-const syntheticLabel = 'Synthetic preview — no satellite measurements';
-
-async function expectNoOverflow(page: Page) {
-  const dimensions = await page.evaluate(() => ({
-    viewport: window.innerWidth,
-    content: document.documentElement.scrollWidth,
-  }));
-  expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport + 1);
-}
 
 test('renders linked scientific views and responds coherently to a date change', async ({ page }) => {
   const errors: string[] = [];
@@ -29,18 +20,13 @@ test('renders linked scientific views and responds coherently to a date change',
   const spatial = page.getByTestId('spatial-grid').locator('svg').first();
   await expect(histogram).toBeVisible();
   await expect(spatial).toBeVisible();
-  const histogramBefore = await histogram.innerHTML();
-  const spatialBefore = await spatial.innerHTML();
-  const timeBefore = await page.getByTestId('time-series').locator('svg').first().innerHTML();
-
   await page.getByRole('combobox', { name: 'After', exact: true }).selectOption('preview-day-73');
   await expect(page).toHaveURL(/after=preview-day-73/);
   await expect(page.getByTestId('comparison-label')).toContainText(/Day 73.*Day 25/);
-  await expect.poll(() => histogram.innerHTML()).not.toBe(histogramBefore);
-  await expect.poll(() => spatial.innerHTML()).not.toBe(spatialBefore);
-  await expect.poll(() => page.getByTestId('time-series').locator('svg').first().innerHTML()).not.toBe(timeBefore);
+  await expect(page.getByTestId('time-chart').getByText('Day 73', { exact: true })).toBeVisible();
+  await expect(page.getByTestId('spatial-grid')).toHaveAttribute('data-after-id', 'preview-day-73');
+  await expect(page.getByTestId('change-histogram')).toHaveAttribute('aria-label', /after minus before/);
   await expect(page.getByTestId('paired-count')).toContainText(/\d+/);
-
   const missing = page.getByRole('combobox', { name: 'Before', exact: true }).getByRole('option', { name: /Day 37/ });
   await expect(missing).toHaveJSProperty('disabled', true);
   await expectNoOverflow(page);

@@ -1,0 +1,56 @@
+{
+  "description": "Hand-verified numerical reference. No satellite measurements. Quartiles use type 7 interpolation.",
+  "dataset": {
+    "schemaVersion": 1,
+    "id": "calculation-reference",
+    "title": "Synthetic calculation reference",
+    "provenance": {
+      "kind": "synthetic",
+      "description": "Seven schematic cells with known differences and independent expected results.",
+      "generatorVersion": "hand-verified-1",
+      "seed": 0,
+      "productIds": []
+    },
+    "units": "gamma0_db",
+    "polarization": "HH",
+    "grid": {
+      "width": 7,
+      "height": 1,
+      "order": "row-major",
+      "coordinateSystem": "synthetic",
+      "roiMask": [true, true, true, true, true, true, false]
+    },
+    "histogramEdgesDb": [-6, -2, 0, 2, 6],
+    "acquisitions": [
+      {
+        "id": "reference-before",
+        "day": 25,
+        "availability": "available",
+        "valuesDb": [-12, -10, -8, -6, -12, null, null],
+        "summary": { "medianDb": -10, "q25Db": -12, "q75Db": -8, "validCount": 5 }
+      },
+      {
+        "id": "reference-missing",
+        "day": 37,
+        "availability": "missing",
+        "valuesDb": null,
+        "summary": null
+      },
+      {
+        "id": "reference-after",
+        "day": 61,
+        "availability": "available",
+        "valuesDb": [-18, -12, -8, -4, -6, -3, null],
+        "summary": { "medianDb": -7, "q25Db": -11, "q75Db": -4.5, "validCount": 6 }
+      }
+    ]
+  },
+  "expected": {
+    "differencesDb": [-6, -2, 0, 2, 6, null, null],
+    "pairedValidCount": 5,
+    "histogramCounts": [1, 1, 1, 2],
+    "beforeCoverageFraction": 0.8333333333333334,
+    "afterCoverageFraction": 1,
+    "spatialDomainDb": [-18, -3]
+  }
+}

@@ -59,13 +59,17 @@ npm run build
 uv run --project processing ruff check processing
 uv run --project processing pytest processing/tests
 uv run --project processing python -m nisar_preview generate --check
-npm exec --workspace web -- playwright install chromium
+npm exec --workspace web -- playwright install chromium firefox webkit
 npm run test:e2e
 ```
 
-Chromium smoke tests cover linked selections, URL history, reset, loading and error states, no overlapping data, keyboard controls, and desktop/mobile layouts. GitHub Actions runs frontend and Python checks independently on PR updates and pushes to `main`.
+Browser tests verify numerical results across Chromium, Firefox, and WebKit, including linked selections, tables, masks, URL state, recovery, empty coverage, and desktop/narrow layouts. GitHub Actions runs these checks and the Python suite on PR updates and pushes to `main`.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), [methods](docs/methods.md), and the [real-data milestone](docs/real-data-milestone.md).
+
+## Calculation workflow tests
+
+Run `npm run test:all` for independent numerical checks of the Python preparation pipeline, browser calculations, plot data, all 28 date pairs across Chromium/Firefox/WebKit, and three concurrent 10-minute stability sessions. The runner has a 50-minute deadline and prints its temporary results directory. Install all three browser binaries first; see the [calculation testing guide](docs/calculation-testing.md) for commands, coverage, and reference methods.
 
 ## NISAR context
 

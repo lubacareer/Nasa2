@@ -33,7 +33,13 @@ def _quantile(ordered: list[float], probability: float) -> float:
     position = (len(ordered) - 1) * probability
     lower = math.floor(position)
     upper = math.ceil(position)
-    return ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower)
+    fraction = position - lower
+    difference = ordered[upper] - ordered[lower]
+    if math.isfinite(difference):
+        return ordered[lower] + difference * fraction
+    # Opposite-sign finite endpoints can overflow when subtracted. A convex
+    # weighted sum preserves the finite quantile without changing normal results.
+    return ordered[lower] * (1 - fraction) + ordered[upper] * fraction
 
 
 def summarize(values: list[float | None]) -> dict[str, float | int] | None:
@@ -172,9 +178,14 @@ def validate_dataset(dataset: Any) -> None:
         if expected is None:
             if actual is not None:
                 raise ValueError("An acquisition with no valid values must have a null summary")
-        elif actual is None or any(
-            not math.isfinite(actual[key]) or not math.isclose(actual[key], value, abs_tol=1e-9)
-            for key, value in expected.items()
+        elif (
+            actual is None
+            or actual["validCount"] != expected["validCount"]
+            or any(
+                not math.isfinite(actual[key])
+                or not math.isclose(actual[key], expected[key], rel_tol=0.0, abs_tol=1e-9)
+                for key in ("medianDb", "q25Db", "q75Db")
+            )
         ):
             raise ValueError("Acquisition summary must match its prepared dB values")
     if any(values and max(values) - min(values) > edges[-1] for values in cell_ranges):
