@@ -15,9 +15,14 @@ concurrency:
 
 jobs:
   frontend:
-    name: Frontend and Chromium
+    name: Calculations and three-browser checks
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
+    env:
+      TEST_ARTIFACT_DIR: ${{ runner.temp }}/calculation-functional
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -27,12 +32,26 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          enable-cache: true
+          cache-dependency-glob: processing/uv.lock
+      - run: uv sync --project processing --frozen
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
-      - run: npm run build
-      - run: npm exec --workspace web -- playwright install --with-deps chromium
+      - run: npm run test:runner
       - run: npm run test:e2e
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: calculation-functional-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.TEST_ARTIFACT_DIR }}
+          retention-days: 7
+          if-no-files-found: warn
 
   processing:
     name: Python and data contract

@@ -11,7 +11,10 @@
     "typecheck": "npm run typecheck --workspace web",
     "test": "npm run test --workspace web",
     "build": "npm run build --workspace web",
-    "test:e2e": "npm run test:e2e --workspace web",
+    "test:e2e": "node tests/run-calculations.mjs functional",
+    "test:stability": "node tests/run-calculations.mjs stability",
+    "test:all": "node tests/run-calculations.mjs all",
+    "test:runner": "node --test tests/run-calculations.test.mjs",
     "check": "npm run lint && npm run typecheck && npm test && npm run build"
   }
 }

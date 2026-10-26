@@ -12,7 +12,12 @@ function validationQuantile(
   const position = (sorted.length - 1) * probability;
   const lower = Math.floor(position);
   const upper = Math.ceil(position);
-  return sorted[lower] + (sorted[upper] - sorted[lower]) * (position - lower);
+  const fraction = position - lower;
+  const span = sorted[upper] - sorted[lower];
+  // Opposite finite extremes can overflow their difference even when the quantile is finite.
+  return Number.isFinite(span)
+    ? sorted[lower] + span * fraction
+    : sorted[lower] * (1 - fraction) + sorted[upper] * fraction;
 }
 
 /** Reject malformed or inconsistent handoffs without replacing Python's prepared values. */

@@ -1,0 +1,33 @@
+{
+  "fixtureSha256": "098089bfb8ea947d005eaa8aee06a06c3490bd08ac245b95d616171c4af3c1d6",
+  "pairs": [
+    {"beforeId": "preview-day-1", "afterId": "preview-day-13", "validCount": 274, "binCounts": [0, 0, 0, 0, 0, 0, 0, 98, 165, 11, 0, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-1", "afterId": "preview-day-25", "validCount": 279, "binCounts": [0, 0, 0, 0, 0, 0, 0, 136, 143, 0, 0, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-1", "afterId": "preview-day-49", "validCount": 282, "binCounts": [0, 0, 0, 0, 44, 53, 36, 47, 30, 71, 1, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-1", "afterId": "preview-day-61", "validCount": 298, "binCounts": [0, 0, 0, 0, 40, 63, 44, 39, 42, 69, 1, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-1", "afterId": "preview-day-73", "validCount": 316, "binCounts": [0, 0, 0, 0, 0, 5, 126, 73, 101, 11, 0, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-1", "afterId": "preview-day-85", "validCount": 324, "binCounts": [0, 0, 0, 0, 0, 0, 0, 165, 159, 0, 0, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-1", "afterId": "preview-day-97", "validCount": 321, "binCounts": [0, 0, 0, 0, 0, 0, 0, 110, 201, 10, 0, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-13", "afterId": "preview-day-25", "validCount": 263, "binCounts": [0, 0, 0, 0, 0, 0, 9, 154, 100, 0, 0, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-13", "afterId": "preview-day-49", "validCount": 267, "binCounts": [0, 0, 0, 18, 61, 27, 29, 26, 29, 60, 17, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-13", "afterId": "preview-day-61", "validCount": 286, "binCounts": [0, 0, 0, 16, 70, 28, 35, 21, 38, 64, 14, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-13", "afterId": "preview-day-73", "validCount": 302, "binCounts": [0, 0, 0, 0, 4, 83, 49, 47, 66, 53, 0, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-13", "afterId": "preview-day-85", "validCount": 308, "binCounts": [0, 0, 0, 0, 0, 0, 14, 184, 110, 0, 0, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-13", "afterId": "preview-day-97", "validCount": 308, "binCounts": [0, 0, 0, 0, 0, 0, 0, 165, 143, 0, 0, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-25", "afterId": "preview-day-49", "validCount": 263, "binCounts": [0, 0, 0, 0, 30, 53, 41, 42, 32, 64, 1, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-25", "afterId": "preview-day-61", "validCount": 277, "binCounts": [0, 0, 0, 0, 34, 55, 44, 39, 39, 66, 0, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-25", "afterId": "preview-day-73", "validCount": 297, "binCounts": [0, 0, 0, 0, 0, 6, 106, 78, 92, 15, 0, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-25", "afterId": "preview-day-85", "validCount": 304, "binCounts": [0, 0, 0, 0, 0, 0, 0, 146, 158, 0, 0, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-25", "afterId": "preview-day-97", "validCount": 301, "binCounts": [0, 0, 0, 0, 0, 0, 0, 110, 181, 10, 0, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-49", "afterId": "preview-day-61", "validCount": 291, "binCounts": [0, 0, 0, 0, 0, 0, 0, 127, 164, 0, 0, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-49", "afterId": "preview-day-73", "validCount": 307, "binCounts": [0, 0, 0, 0, 0, 0, 3, 105, 103, 96, 0, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-49", "afterId": "preview-day-85", "validCount": 317, "binCounts": [0, 0, 0, 0, 0, 1, 75, 42, 42, 49, 73, 35, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-49", "afterId": "preview-day-97", "validCount": 314, "binCounts": [0, 0, 0, 0, 0, 17, 69, 28, 43, 32, 39, 72, 14, 0, 0, 0]},
+    {"beforeId": "preview-day-61", "afterId": "preview-day-73", "validCount": 326, "binCounts": [0, 0, 0, 0, 0, 0, 3, 120, 100, 103, 0, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-61", "afterId": "preview-day-85", "validCount": 336, "binCounts": [0, 0, 0, 0, 0, 1, 70, 53, 44, 54, 75, 39, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-61", "afterId": "preview-day-97", "validCount": 330, "binCounts": [0, 0, 0, 0, 0, 25, 61, 39, 36, 36, 44, 71, 18, 0, 0, 0]},
+    {"beforeId": "preview-day-73", "afterId": "preview-day-85", "validCount": 353, "binCounts": [0, 0, 0, 0, 0, 0, 14, 112, 84, 135, 8, 0, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-73", "afterId": "preview-day-97", "validCount": 351, "binCounts": [0, 0, 0, 0, 0, 0, 61, 65, 57, 73, 93, 2, 0, 0, 0, 0]},
+    {"beforeId": "preview-day-85", "afterId": "preview-day-97", "validCount": 360, "binCounts": [0, 0, 0, 0, 0, 0, 0, 131, 215, 14, 0, 0, 0, 0, 0, 0]}
+  ]
+}

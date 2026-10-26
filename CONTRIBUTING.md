@@ -18,7 +18,7 @@ After a deliberate generator change, regenerate the committed fixture and inspec
 
 ## Automated review
 
-Actions runs frontend validation, Chromium smoke tests, and Python checks. Baz Reviewer and CodeRabbit review ready PRs; push fixes to the same branch.
+Actions runs frontend validation, numerical browser comparisons in three engines, and Python checks. Run `npm run test:all` for the complete calculation suite and ten-minute stability sessions; see [calculation verification](docs/calculation-testing.md) for independent references and runtime limits. Baz Reviewer and CodeRabbit review ready PRs; push fixes to the same branch.
 
 If a review does not start, use `@coderabbitai review` or `Baz review`. CodeRabbit currently requires a manual trigger for public repositories with fewer than 10 stars; availability also depends on app access and plan. Verify actual bot output on the current head commit. See [CodeRabbit limits](https://docs.coderabbit.ai/management/plans) and [Baz configuration](https://baz.ai/docs/account/configurations).
 
