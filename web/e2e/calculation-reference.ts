@@ -49,8 +49,13 @@ export function loadReference(): CalculationReference {
 }
 
 export async function expectNoOverflow(page: Page) {
-  const dimensions = await page.evaluate(() => ({ viewport: window.innerWidth, content: document.documentElement.scrollWidth }));
-  expect(dimensions.content, 'page must fit the viewport').toBeLessThanOrEqual(dimensions.viewport + 1);
+  // ResizeObserver updates ECharts SVG dimensions after the viewport reflows.
+  // Keep the same one-pixel tolerance and fail if overflow persists after settling.
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), {
+    message: 'page must fit the viewport after chart resize settles',
+    timeout: 5_000,
+    intervals: [50, 100, 250],
+  }).toBeLessThanOrEqual(1);
 }
 
 export async function selectPair(page: Page, beforeId: string, afterId: string, dataset = previewDataset) {
