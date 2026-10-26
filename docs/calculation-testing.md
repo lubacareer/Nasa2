@@ -6,7 +6,7 @@ The suite checks scientific calculation pipelines and the results displayed in t
 
 `contracts/testing/calculation-golden.json` is a hand-verified seven-cell package. Its paired changes are `[-6, -2, 0, 2, 6, null, null]`, its valid-pair count is 5, and its histogram counts are `[1, 1, 1, 2]`. It includes one-sided missing values, an excluded ROI cell, an unavailable acquisition, and zero change.
 
-The test-only Python oracle independently uses 50-digit Decimal logarithms and exact Fraction interpolation/subtraction. It imports no production calculation helpers. The generated oracle contains expected acquisition summaries and all 28 chronological pairs from the committed preview; browser expectations never call the application's analysis functions.
+`decimal_db` in `processing/tests/test_calculation_workflows.py` checks power-to-dB conversion using 50-digit Decimal logarithms. The test-only browser oracle works from the prepared dB arrays, uses exact Fraction interpolation and subtraction over the decoded floating-point inputs, and rounds the results to floats for JSON output. Histogram expectations use an independent fixed-edge `bisect_right` calculation on the rounded differences. The oracle imports no production calculation helpers. The generated oracle contains expected acquisition summaries and all 28 chronological pairs from the committed preview; browser expectations never call the application's analysis functions.
 
 | Calculation pipeline | Checks | Test location |
 | --- | --- | --- |

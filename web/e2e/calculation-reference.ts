@@ -50,12 +50,22 @@ export function loadReference(): CalculationReference {
 
 export async function expectNoOverflow(page: Page) {
   // ResizeObserver updates ECharts SVG dimensions after the viewport reflows.
-  // Keep the same one-pixel tolerance and fail if overflow persists after settling.
-  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), {
-    message: 'page must fit the viewport after chart resize settles',
+  // Require consecutive fitting samples for 250 ms; any overflow restarts the window.
+  let fittingSince: number | null = null;
+  await expect.poll(async () => {
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    if (!Number.isFinite(overflow) || overflow > 1) {
+      fittingSince = null;
+      return 0;
+    }
+    const sampledAt = performance.now();
+    fittingSince ??= sampledAt;
+    return sampledAt - fittingSince;
+  }, {
+    message: 'page must fit the viewport continuously for 250 ms after chart resize settles',
     timeout: 5_000,
     intervals: [50, 100, 250],
-  }).toBeLessThanOrEqual(1);
+  }).toBeGreaterThanOrEqual(250);
 }
 
 export async function selectPair(page: Page, beforeId: string, afterId: string, dataset = previewDataset) {

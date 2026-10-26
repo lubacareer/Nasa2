@@ -9,13 +9,12 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: calculation-full-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
-
 jobs:
   calculations:
     if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-suite'
+    concurrency:
+      group: calculation-full-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: false
     name: Numerical regression and sustained comparisons
     runs-on: ubuntu-latest
     timeout-minutes: 55
