@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       publish_image:
-        description: Build and publish the PR image after the full suite passes
+        description: Build, smoke-test both Linux architectures, then publish the PR image
         type: boolean
         required: false
         default: false
@@ -65,10 +65,40 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
+  container-smoke:
+    name: Linux desktop container (${{ matrix.arch }})
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_image
+    needs: calculations
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+            platform: linux/amd64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Build the native container image
+        run: docker buildx build --platform ${{ matrix.platform }} --load --tag nisar-surface-change:ci .
+      - name: Check password enforcement, Electron preview, and noVNC
+        env:
+          NISAR_CONTAINER_ARCH: ${{ matrix.arch }}
+        run: node tests/docker-image-smoke.mjs
+
   publish-docker:
     name: Publish Docker Hub image
     if: github.event_name == 'workflow_dispatch' && inputs.publish_image
-    needs: calculations
+    needs: [calculations, container-smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:

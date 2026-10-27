@@ -54,7 +54,7 @@ To enable publishing from GitHub Actions:
 
 1. In Docker Hub, create an access token with **Read & Write** permission.
 2. In this GitHub repository, open **Settings → Secrets and variables → Actions → New repository secret**. Name it `DOCKERHUB_TOKEN` and paste the token value.
-3. Open **Actions → Full calculation verification → Run workflow**. Select the feature branch, set `publish_image` to `true`, and enter its PR number. The workflow confirms that branch is the current head of that open PR, runs the full calculation suite, then publishes `pr-<number>` and `sha-<commit>` tags to [`lubani27/nisar-surface-change`](https://hub.docker.com/r/lubani27/nisar-surface-change).
+3. Open **Actions → Full calculation verification → Run workflow**. Select the feature branch, set `publish_image` to `true`, and enter its PR number. The workflow confirms that branch is the current head of that open PR, runs the full calculation suite, builds and smoke-tests the native amd64 and arm64 images, then publishes `pr-<number>` and `sha-<commit>` tags to [`lubani27/nisar-surface-change`](https://hub.docker.com/r/lubani27/nisar-surface-change).
 
 Do not put the token in a workflow file or commit it to the repository.
 
