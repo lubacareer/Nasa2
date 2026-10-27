@@ -5,6 +5,17 @@ on:
     branches: [main]
     types: [labeled]
   workflow_dispatch:
+    inputs:
+      publish_image:
+        description: Build and publish the PR image after the full suite passes
+        type: boolean
+        required: false
+        default: false
+      pr_number:
+        description: Pull request number for the Docker Hub pr-<number> tag
+        type: string
+        required: false
+        default: '3'
 
 permissions:
   contents: read
@@ -53,3 +64,49 @@ jobs:
           path: /tmp/nisar-calculation-full
           retention-days: 7
           if-no-files-found: warn
+
+  publish-docker:
+    name: Publish Docker Hub image
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_image
+    needs: calculations
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - name: Validate the PR number input
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          WORKFLOW_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ ! "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "Enter a numeric pull request number." >&2
+            exit 64
+          fi
+          pull_request="$(gh api "repos/lubacareer/Nasa2/pulls/$PR_NUMBER")"
+          if [[ "$(jq -r .state <<<"$pull_request")" != "open" || "$(jq -r .head.sha <<<"$pull_request")" != "$WORKFLOW_SHA" ]]; then
+            echo "The selected branch must be the current head of the open PR being tagged." >&2
+            exit 65
+          fi
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Log in to Docker Hub
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
+        with:
+          username: lubani27
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and publish multi-architecture image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            lubani27/nisar-surface-change:pr-${{ inputs.pr_number }}
+            lubani27/nisar-surface-change:sha-${{ github.sha }}

@@ -50,6 +50,14 @@ Replace `123` with the PR number. Then open <http://127.0.0.1:6080/vnc.html>, se
 
 The container runs as a non-root user. Its custom seccomp profile is based on the current [Moby seccomp profile](https://github.com/moby/profiles/tree/seccomp/v0.2.4/seccomp) and omits the legacy 32-bit `socketcall` syscall from the base allowlist. It permits only Chromium's `CLONE_NEWUSER` probe, `CLONE_NEWPID` renderer-child isolation, and `CLONE_NEWUSER | CLONE_NEWPID | CLONE_NEWNET` renderer sandbox combination; other namespace flags remain blocked. Docker documents how a custom profile is applied with [`--security-opt seccomp=<path>`](https://docs.docker.com/engine/security/seccomp/).
 
+To enable publishing from GitHub Actions:
+
+1. In Docker Hub, create an access token with **Read & Write** permission.
+2. In this GitHub repository, open **Settings → Secrets and variables → Actions → New repository secret**. Name it `DOCKERHUB_TOKEN` and paste the token value.
+3. Open **Actions → Full calculation verification → Run workflow**. Select the feature branch, set `publish_image` to `true`, and enter its PR number. The workflow confirms that branch is the current head of that open PR, runs the full calculation suite, then publishes `pr-<number>` and `sha-<commit>` tags to [`lubani27/nisar-surface-change`](https://hub.docker.com/r/lubani27/nisar-surface-change).
+
+Do not put the token in a workflow file or commit it to the repository.
+
 To install the Python environment and verify the fixture:
 
 ```powershell
