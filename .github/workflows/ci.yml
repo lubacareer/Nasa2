@@ -42,10 +42,10 @@ jobs:
           enable-cache: true
           cache-dependency-glob: processing/uv.lock
       - run: uv sync --project processing --frozen
+      - run: npm run test:validator
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
-      - run: npm run test:validator
       - run: node --test tests/publish-guards.test.mjs
       - run: npm run test:dev
       - run: npm run test:runner

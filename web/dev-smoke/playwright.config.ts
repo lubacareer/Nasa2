@@ -7,6 +7,7 @@ export default defineConfig({
   timeout: 30_000,
   use: { browserName: 'chromium', baseURL: 'http://127.0.0.1:5182' },
   webServer: {
+    cwd: '..',
     command: 'npx vite --host 127.0.0.1 --port 5182 --strictPort',
     url: 'http://127.0.0.1:5182',
     reuseExistingServer: false,
