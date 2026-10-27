@@ -6,7 +6,8 @@ import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
 const image = 'nisar-surface-change:ci';
-const containerName = `nisar-docker-image-smoke-${process.pid}-${randomBytes(4).toString('hex')}`;
+const testRunId = `${process.pid}-${randomBytes(8).toString('hex')}`;
+const containerName = `nisar-docker-image-smoke-${testRunId}`;
 const resultPath = '/tmp/desktop-smoke-result.json';
 const seccompProfilePath = path.resolve('docker/seccomp-profile.json');
 const port = 6080;
@@ -94,6 +95,7 @@ try {
 
   const started = docker([
     'run', '--detach', '--name', containerName,
+    '--label', `nisar.docker-smoke=${testRunId}`,
     '--security-opt', `seccomp=${seccompProfilePath}`,
     '--publish', `127.0.0.1:${port}:6080`,
     '--env', `VNC_PASSWORD=${vncPassword}`,
@@ -150,5 +152,15 @@ try {
   }
   throw error;
 } finally {
-  if (containerId) docker(['rm', '--force', containerId], { allowFailure: true });
+  let cleanupId = containerId;
+  if (!cleanupId) {
+    const candidate = docker([
+      'inspect', '--format', '{{.Id}} {{index .Config.Labels "nisar.docker-smoke"}}', containerName,
+    ], { allowFailure: true });
+    if (candidate.status === 0) {
+      const [candidateId, candidateLabel] = candidate.stdout.trim().split(/\s+/);
+      if (candidateLabel === testRunId && /^[\da-f]{12,64}$/i.test(candidateId)) cleanupId = candidateId;
+    }
+  }
+  if (cleanupId) docker(['rm', '--force', cleanupId], { allowFailure: true });
 }
