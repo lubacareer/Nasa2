@@ -131,6 +131,7 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -143,6 +144,21 @@ jobs:
         with:
           username: lubani27
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Recheck PR state and head immediately before publishing
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          WORKFLOW_SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! pull_request="$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" 2>/dev/null)"; then
+            echo "The pull request is no longer available in this repository." >&2
+            exit 66
+          fi
+          if [[ "$(jq -r .state <<<"$pull_request")" != "open" || "$(jq -r .head.sha <<<"$pull_request")" != "$WORKFLOW_SHA" ]]; then
+            echo "The pull request closed or changed after preflight; refusing to publish this image." >&2
+            exit 65
+          fi
       - name: Build and publish multi-architecture image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
