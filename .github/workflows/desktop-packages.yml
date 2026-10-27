@@ -99,3 +99,14 @@ jobs:
         env:
           NISAR_CONTAINER_ARCH: ${{ matrix.arch }}
         run: node tests/docker-image-smoke.mjs
+      - name: Export the smoke-tested architecture image
+        run: |
+          docker tag nisar-surface-change:ci nisar-surface-change:ci-${{ matrix.arch }}
+          docker save nisar-surface-change:ci-${{ matrix.arch }} --output "$RUNNER_TEMP/nisar-surface-change-${{ matrix.arch }}.tar"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nisar-docker-${{ matrix.arch }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nisar-surface-change-${{ matrix.arch }}.tar
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
