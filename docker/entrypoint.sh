@@ -47,7 +47,9 @@ cleanup() {
     if [ -n "$pid" ]; then kill "$pid" 2>/dev/null || true; fi
   done
 }
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 ready=0
 for _ in $(seq 1 50); do

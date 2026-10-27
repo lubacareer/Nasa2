@@ -107,6 +107,17 @@ try {
   containerId = started.stdout.trim();
   assert.match(containerId, /^[\da-f]{12,64}$/i, 'docker run should report the started container ID.');
 
+  docker(['exec', '--user', 'nisar', containerId, '/bin/sh', '-c', [
+    'set -eu',
+    'test "$(stat -c %u /opt/nisar/out)" -eq 0',
+    'test "$(stat -c %u /usr/local/bin/nisar-entrypoint)" -eq 0',
+    'test -x /usr/local/bin/nisar-entrypoint && test ! -w /usr/local/bin/nisar-entrypoint',
+    'test -z "$(find /opt/nisar/out ! -uid 0 -print -quit)"',
+    'test -z "$(find /opt/nisar/out -perm /022 -print -quit)"',
+    'sandbox="$(find /opt/nisar/out -type f -name chrome-sandbox -print -quit)"',
+    'test -n "$sandbox" && test "$(stat -c %u:%g:%a "$sandbox")" = 0:0:4755',
+  ].join(' && ')]);
+
   let smokeResult = null;
   let noVncReady = false;
   for (let attempt = 0; attempt < 75; attempt += 1) {

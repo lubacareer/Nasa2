@@ -58,9 +58,12 @@ RUN apt-get update \
     && mkdir -p /tmp/.X11-unix \
     && chmod 1777 /tmp/.X11-unix
 
-COPY --from=desktop-build --chown=nisar:nisar /app/out /opt/nisar/out
-COPY --chown=nisar:nisar docker/entrypoint.sh /usr/local/bin/nisar-entrypoint
-RUN chmod 0755 /usr/local/bin/nisar-entrypoint \
+COPY --from=desktop-build /app/out /opt/nisar/out
+COPY docker/entrypoint.sh /usr/local/bin/nisar-entrypoint
+RUN chown -R root:root /opt/nisar/out /usr/local/bin/nisar-entrypoint \
+    && chmod -R a+rX /opt/nisar/out \
+    && chmod -R a-w /opt/nisar/out \
+    && chmod 0755 /usr/local/bin/nisar-entrypoint \
     && find /opt/nisar/out -type f -name chrome-sandbox -exec chown root:root {} + -exec chmod 4755 {} +
 
 USER nisar
