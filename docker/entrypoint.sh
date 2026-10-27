@@ -19,10 +19,10 @@ if [ "${#vnc_password}" -ne 8 ]; then
   exit 64
 fi
 
-mkdir -p "$HOME/.vnc"
-x11vnc -storepasswd "$vnc_password" "$HOME/.vnc/passwd" >/dev/null
-chmod 0600 "$HOME/.vnc/passwd"
-unset vnc_password VNC_PASSWORD
+umask 077
+vnc_passfile=$(mktemp)
+printf '%s\n' "$vnc_password" >"$vnc_passfile"
+unset vnc_password VNC_PASSWORD VNC_PASSWORD_FILE
 
 app_pid=
 websockify_pid=
@@ -31,6 +31,7 @@ Xvfb "$DISPLAY" -screen 0 1600x1000x24 -nolisten tcp -noreset &
 xvfb_pid=$!
 
 cleanup() {
+  if [ -n "${vnc_passfile:-}" ]; then rm -f "$vnc_passfile"; fi
   for pid in "$app_pid" "$websockify_pid" "$vnc_pid" "$xvfb_pid"; do
     if [ -n "$pid" ]; then kill "$pid" 2>/dev/null || true; fi
   done
@@ -50,7 +51,7 @@ if [ "$ready" -ne 1 ]; then
   exit 1
 fi
 
-x11vnc -display "$DISPLAY" -forever -shared -localhost -rfbport 5900 -rfbauth "$HOME/.vnc/passwd" -quiet &
+x11vnc -display "$DISPLAY" -forever -shared -localhost -rfbport 5900 -passwdfile "rm:$vnc_passfile" -quiet &
 vnc_pid=$!
 websockify --heartbeat 30 --web /usr/share/novnc 6080 127.0.0.1:5900 &
 websockify_pid=$!

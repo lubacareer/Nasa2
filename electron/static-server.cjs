@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
+const { pipeline } = require('node:stream');
 
 const CONTENT_TYPES = new Map([
   ['.css', 'text/css; charset=utf-8'],
@@ -89,7 +90,7 @@ function createAssetServer(assetDirectory, onResponse = () => {}) {
       'X-Content-Type-Options': 'nosniff',
     });
     if (request.method === 'HEAD') response.end();
-    else fs.createReadStream(target).pipe(response);
+    else pipeline(fs.createReadStream(target), response, () => {});
   });
   return server;
 }

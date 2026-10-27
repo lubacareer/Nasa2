@@ -39,7 +39,13 @@ async function waitForSmokeResult() {
     if (processHandle.exitCode !== null) {
       throw new Error(`Packaged app exited before its window was ready (code ${processHandle.exitCode}). stderr: ${stderr}`);
     }
-    if (fs.existsSync(resultPath)) return JSON.parse(fs.readFileSync(resultPath, 'utf8'));
+    if (fs.existsSync(resultPath)) {
+      try {
+        return JSON.parse(fs.readFileSync(resultPath, 'utf8'));
+      } catch (error) {
+        if (!(error instanceof SyntaxError)) throw error;
+      }
+    }
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   throw new Error(`Packaged app did not report its loaded preview and plots within 60 seconds. stderr: ${stderr}`);

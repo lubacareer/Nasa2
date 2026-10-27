@@ -1,5 +1,7 @@
 .git
 .github
+.env
+.env.*
 .artifacts
 .ruff_cache
 node_modules

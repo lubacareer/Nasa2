@@ -75,6 +75,8 @@ async function startRenderer() {
     return url;
   }
 
+  if (assetServer?.listening && rendererOrigin) return `${rendererOrigin}/`;
+
   const assetDirectory = path.join(app.getAppPath(), 'web', 'dist');
   assetServer = createAssetServer(assetDirectory, assetRequests ? (request) => assetRequests.push(request) : undefined);
   await new Promise((resolve, reject) => {
