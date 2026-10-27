@@ -41,6 +41,9 @@ jobs:
       - run: npm ci
       - run: npm run test:desktop
       - run: npm run desktop:make
+      - name: Prepare space-free Linux app path
+        if: runner.os == 'Linux'
+        run: mv "out/desktop/NISAR Surface Change-linux-x64" out/desktop/nisar-app
       - name: Configure Chromium sandbox helper
         if: runner.os == 'Linux'
         shell: bash
@@ -58,6 +61,8 @@ jobs:
           sudo chmod 4755 "$helper"
       - if: runner.os == 'Linux'
         run: xvfb-run --auto-servernum npm run desktop:smoke
+        env:
+          NISAR_DESKTOP_PACKAGE_DIR: out/desktop/nisar-app
       - if: runner.os != 'Linux'
         run: npm run desktop:smoke
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

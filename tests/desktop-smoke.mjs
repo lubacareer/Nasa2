@@ -5,7 +5,8 @@ import path from 'node:path';
 
 const appName = 'nisar-surface-change';
 const appDirectory = `NISAR Surface Change-${process.platform}-${process.arch}`;
-const outputDirectory = path.resolve(process.env.ELECTRON_OUT_DIR || 'out/desktop', appDirectory);
+const outputDirectory = path.resolve(process.env.NISAR_DESKTOP_PACKAGE_DIR
+  || path.join(process.env.ELECTRON_OUT_DIR || 'out/desktop', appDirectory));
 const executable = process.platform === 'darwin'
   ? path.join(outputDirectory, 'NISAR Surface Change.app', 'Contents', 'MacOS', appName)
   : path.join(outputDirectory, process.platform === 'win32' ? `${appName}.exe` : appName);
