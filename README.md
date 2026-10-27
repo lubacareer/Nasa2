@@ -62,6 +62,8 @@ To enable publishing from GitHub Actions:
 3. Before running the workflow, verify that the environment requires `lubacareer` to review deployments, permits self-review, disallows administrator bypass, and allows only the `feat/electron-desktop-docker` branch. Referencing a missing environment in a workflow does not create these protections.
 4. Open **Actions → Full calculation verification → Run workflow**. Select `feat/electron-desktop-docker`, set `publish_image` to `true`, and enter the PR number. After the calculation suite and native amd64 and arm64 image smoke tests pass, review the commit, workflow, Dockerfile, and image IDs in the job summaries, then approve the `dockerhub-publish` deployment.
 
+Newly uploaded tested-image artifacts are retained for 36 days. If the artifacts expire or the workflow is cancelled, rerun the full workflow to rebuild and retest the images before approval.
+
 The approved job publishes the tested images under `pr-<number>` and `sha-<commit>` tags to [`lubani27/nisar-surface-change`](https://hub.docker.com/r/lubani27/nisar-surface-change). It also creates public `staging-<run>-<attempt>-*` tags during promotion; these may remain after the run. The PR is rechecked before staging and immediately before its tag is updated. A PR update and a registry tag update cannot be atomic across GitHub and Docker Hub, so use the reported image digest when an exact image reference is needed.
 
 To install the Python environment and verify the fixture:
