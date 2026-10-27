@@ -18,6 +18,17 @@ if [ "${#vnc_password}" -ne 8 ]; then
   echo "Use an exactly 8-character VNC password; the VNC protocol ignores characters after the eighth." >&2
   exit 64
 fi
+invalid_password_bytes=$(printf '%s' "$vnc_password" | LC_ALL=C tr -d ' -~' | wc -c)
+if [ "$invalid_password_bytes" -gt 0 ]; then
+  echo "Use eight printable ASCII characters for the VNC password." >&2
+  exit 64
+fi
+case "$vnc_password" in
+  \#*|*__SKIP__*|*__COMM__*)
+    echo "The VNC password cannot begin with # or contain an x11vnc password-file directive." >&2
+    exit 64
+    ;;
+esac
 
 umask 077
 vnc_passfile=$(mktemp)
