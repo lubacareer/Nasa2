@@ -17,6 +17,38 @@ Open <http://127.0.0.1:5180>. The frontend serves its committed preview fixture 
 
 Before running `npm ci` again, stop this project's development server with **Ctrl+C** in its terminal. On Windows, a running Vite process can lock the native Rolldown binding and interrupt dependency installation with `EPERM`. After stopping it, rerun `npm ci`, then `npm run dev`.
 
+## Desktop app
+
+The same workbench can run in a standalone Electron window. In development, run:
+
+```powershell
+npm run desktop:dev
+```
+
+Build the native package for the current operating system with:
+
+```powershell
+npm run desktop:make
+```
+
+Installers are written under `out/desktop/make`. PR builds are unsigned, so Windows and macOS may show their standard unverified-app warnings. The packaged window serves its bundled files from loopback only; it does not need a network connection to load the preview. Source links open in the system browser.
+
+## Docker remote desktop
+
+The public Linux image is published at [`lubani27/nisar-surface-change`](https://hub.docker.com/r/lubani27/nisar-surface-change). PR images use `pr-<number>` tags; commit builds use `sha-<commit>`. The container runs the Linux Electron desktop under a virtual display and provides a noVNC page for viewing it.
+
+Run it locally with a private, exactly eight-character VNC password (the VNC protocol ignores characters after the eighth), and keep the published port bound to the local machine:
+
+```powershell
+$env:VNC_PASSWORD = Read-Host 'Enter a private 8-character VNC password'
+docker run --rm --security-opt seccomp=unconfined -e VNC_PASSWORD -p 127.0.0.1:6080:6080 lubani27/nisar-surface-change:pr-123
+Remove-Item Env:VNC_PASSWORD
+```
+
+Replace `123` with the PR number. Then open <http://127.0.0.1:6080/vnc.html>, select **Connect**, and enter the VNC password. The VNC server itself only listens inside the container; port 6080 carries the browser display connection.
+
+Docker's default seccomp profile blocks the Linux namespace operation Electron's Chromium sandbox needs in this desktop container. The command relaxes that host syscall filter so Chromium can start its renderer sandbox; the app still runs as a non-root user and its Electron renderer remains sandboxed. Use this option only with a trusted image.
+
 To install the Python environment and verify the fixture:
 
 ```powershell
@@ -48,6 +80,7 @@ The time-series band is a **spatial interquartile range**, not a confidence inte
 | `processing/` | Python fixture generation, masking, power-to-decibel conversion, summaries, and validation |
 | `contracts/` | Versioned JSON data-package schema and corresponding TypeScript interfaces |
 | `docs/` | Scientific methods and the real-data milestone |
+| `electron/` and `docker/` | Isolated Electron desktop shell and password-protected Linux remote-display container |
 
 ## Checks
 

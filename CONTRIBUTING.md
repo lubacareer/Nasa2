@@ -12,6 +12,8 @@ Verify date selection, reset, browser history, null-data behavior, keyboard acce
 
 The versioned handoff is `contracts/study-dataset.schema.json`; `contracts/dataset.ts` describes the same shape. Update both with validation and tests when changing the format.
 
+The browser uses an Ajv standalone validator so strict Electron Content Security Policy does not need `unsafe-eval`. After changing the JSON schema, run `npm run generate:validator` and commit the generated validator; `npm run build` checks that it matches the schema.
+
 Python computes prepared values and per-acquisition summaries. TypeScript computes paired valid-pixel differences and bins them using fixed package edges. Test numerical edge cases rather than only chart configuration.
 
 After a deliberate generator change, regenerate the committed fixture and inspect provenance, masks, gaps, summaries, and pairwise range. `generate --check` must pass before opening a PR.

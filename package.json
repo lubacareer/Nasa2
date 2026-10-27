@@ -3,18 +3,43 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "workspaces": ["web"],
-  "engines": { "node": ">=22.12.0 <23" },
+  "productName": "NISAR Surface Change",
+  "description": "A synthetic, plot-focused NISAR surface change workbench.",
+  "author": "NISAR Surface Change contributors",
+  "main": "electron/main.cjs",
+  "workspaces": [
+    "web"
+  ],
+  "engines": {
+    "node": ">=22.12.0 <23"
+  },
   "scripts": {
     "dev": "npm run dev --workspace web --",
+    "desktop:dev": "concurrently --kill-others --success first \"npm run dev\" \"wait-on http://127.0.0.1:5180 && cross-env ELECTRON_RUN_AS_NODE= ELECTRON_RENDERER_URL=http://127.0.0.1:5180 electron .\"",
+    "desktop:package": "npm run build && electron-forge package",
+    "desktop:make": "npm run build && electron-forge make",
+    "desktop:smoke": "node tests/desktop-smoke.mjs",
+    "test:desktop": "node --test tests/electron-static-server.test.cjs",
+    "generate:validator": "node scripts/generate-validator.mjs",
+    "check:validator": "node scripts/generate-validator.mjs --check",
     "lint": "eslint web contracts --max-warnings 0",
     "typecheck": "npm run typecheck --workspace web",
     "test": "npm run test --workspace web",
-    "build": "npm run build --workspace web",
+    "build": "npm run check:validator && npm run build --workspace web",
     "test:e2e": "node tests/run-calculations.mjs functional",
     "test:stability": "node tests/run-calculations.mjs stability",
     "test:all": "node tests/run-calculations.mjs all",
     "test:runner": "node --test tests/run-calculations.test.mjs",
     "check": "npm run lint && npm run typecheck && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^8.0.1",
+    "@electron-forge/maker-deb": "^8.0.1",
+    "@electron-forge/maker-dmg": "^8.0.1",
+    "@electron-forge/maker-squirrel": "^8.0.1",
+    "concurrently": "^9.2.5",
+    "cross-env": "^10.1.0",
+    "electron": "^45.0.0",
+    "wait-on": "^8.0.5"
   }
 }

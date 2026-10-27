@@ -1,8 +1,5 @@
-import Ajv2020 from 'ajv/dist/2020';
-import schema from '../../contracts/study-dataset.schema.json';
+import { validate } from './generated/study-dataset-validator.js';
 import type { StudyDataset } from '../../contracts/dataset';
-
-const validate = new Ajv2020({ allErrors: true }).compile<StudyDataset>(schema);
 
 /** Independently check producer summaries using the contract's type 7 quantile. */
 function validationQuantile(
