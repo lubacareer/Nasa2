@@ -15,14 +15,42 @@ on:
         description: Pull request number for the Docker Hub pr-<number> tag
         type: string
         required: false
-        default: '3'
 
 permissions:
   contents: read
 
 jobs:
+  preflight:
+    name: Validate Docker publish request
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Validate PR number and selected branch
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          WORKFLOW_SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ ! "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "Enter a numeric pull request number." >&2
+            exit 64
+          fi
+          if ! pull_request="$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER" 2>/dev/null)"; then
+            echo "The pull request was not found in this repository." >&2
+            exit 66
+          fi
+          if [[ "$(jq -r .state <<<"$pull_request")" != "open" || "$(jq -r .head.sha <<<"$pull_request")" != "$WORKFLOW_SHA" ]]; then
+            echo "The selected branch must be the current head of the open PR being tagged." >&2
+            exit 65
+          fi
+
   calculations:
-    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-suite'
+    needs: preflight
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-suite') && (needs.preflight.result == 'success' || needs.preflight.result == 'skipped') }}
     concurrency:
       group: calculation-full-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: false
@@ -98,32 +126,16 @@ jobs:
   publish-docker:
     name: Publish Docker Hub image
     if: github.event_name == 'workflow_dispatch' && inputs.publish_image
-    needs: [calculations, container-smoke]
+    needs: [preflight, calculations, container-smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: read
-      pull-requests: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           ref: ${{ github.sha }}
-      - name: Validate the PR number input
-        env:
-          PR_NUMBER: ${{ inputs.pr_number }}
-          WORKFLOW_SHA: ${{ github.sha }}
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if [[ ! "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
-            echo "Enter a numeric pull request number." >&2
-            exit 64
-          fi
-          pull_request="$(gh api "repos/lubacareer/Nasa2/pulls/$PR_NUMBER")"
-          if [[ "$(jq -r .state <<<"$pull_request")" != "open" || "$(jq -r .head.sha <<<"$pull_request")" != "$WORKFLOW_SHA" ]]; then
-            echo "The selected branch must be the current head of the open PR being tagged." >&2
-            exit 65
-          fi
       - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
       - name: Log in to Docker Hub
