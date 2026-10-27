@@ -5,13 +5,47 @@ on:
     branches: [main]
     types: [labeled]
   workflow_dispatch:
+    inputs:
+      publish_image:
+        description: Build, smoke-test both Linux architectures, then publish the PR image
+        type: boolean
+        required: false
+        default: false
+      pr_number:
+        description: Pull request number for the Docker Hub pr-<number> tag
+        type: string
+        required: false
 
 permissions:
   contents: read
 
 jobs:
+  preflight:
+    name: Validate Docker publish request
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Validate PR number and selected branch
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          WORKFLOW_SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/check-publish-pr.mjs
+
   calculations:
-    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-suite'
+    needs: preflight
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || github.event.label.name == 'full-suite') && (needs.preflight.result == 'success' || needs.preflight.result == 'skipped') }}
     concurrency:
       group: calculation-full-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: false
@@ -53,3 +87,105 @@ jobs:
           path: /tmp/nisar-calculation-full
           retention-days: 7
           if-no-files-found: warn
+
+  container-smoke:
+    name: Linux desktop container (${{ matrix.arch }})
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_image
+    needs: calculations
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+            platform: linux/amd64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Build the native container image
+        run: docker buildx build --platform ${{ matrix.platform }} --load --tag nisar-surface-change:ci .
+      - name: Record image under test
+        run: echo "TESTED_IMAGE_ID=$(docker image inspect --format '{{.Id}}' nisar-surface-change:ci)" >> "$GITHUB_ENV"
+      - name: Check password enforcement, Electron preview, and noVNC
+        env:
+          NISAR_CONTAINER_ARCH: ${{ matrix.arch }}
+        run: node tests/docker-image-smoke.mjs
+      - name: Save tested image and its identity
+        env:
+          ARCH: ${{ matrix.arch }}
+          PLATFORM: ${{ matrix.platform }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          set -euo pipefail
+          test "$(docker image inspect --format '{{.Id}}' nisar-surface-change:ci)" = "$TESTED_IMAGE_ID"
+          test "$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$TESTED_IMAGE_ID")" = "$PLATFORM"
+          mkdir -p "$RUNNER_TEMP/tested-image"
+          docker save --output "$RUNNER_TEMP/tested-image/image.tar" "$TESTED_IMAGE_ID"
+          checksum="$(sha256sum "$RUNNER_TEMP/tested-image/image.tar" | cut -d ' ' -f 1)"
+          config_path="$(tar -xOf "$RUNNER_TEMP/tested-image/image.tar" manifest.json | jq -er 'if length == 1 then .[0].Config else error("Expected one image configuration") end')"
+          config_digest="sha256:$(tar -xOf "$RUNNER_TEMP/tested-image/image.tar" "$config_path" | sha256sum | cut -d ' ' -f 1)"
+          jq -n --arg platform "$PLATFORM" --arg imageId "$TESTED_IMAGE_ID" --arg configDigest "$config_digest" --arg archiveSha256 "$checksum" --arg commitSha "$GITHUB_SHA" --arg runId "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" '{platform: $platform, imageId: $imageId, configDigest: $configDigest, archiveSha256: $archiveSha256, commitSha: $commitSha, runId: $runId, attempt: $attempt}' > "$RUNNER_TEMP/tested-image/metadata.json"
+          {
+            echo "### Tested $PLATFORM image for PR #$PR_NUMBER"
+            echo "Commit: \`$GITHUB_SHA\`"
+            echo "Image ID: \`$TESTED_IMAGE_ID\`"
+            echo "Config digest: \`$config_digest\`"
+            echo "Archive SHA-256: \`$checksum\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tested-container-${{ matrix.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/tested-image/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 36
+
+  publish-docker:
+    name: Publish Docker Hub image
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_image
+    needs: [preflight, calculations, container-smoke]
+    runs-on: ubuntu-latest
+    environment: dockerhub-publish
+    concurrency:
+      group: dockerhub-publish-${{ github.repository }}-pr-${{ inputs.pr_number }}
+      cancel-in-progress: false
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: tested-container-*-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/tested-images
+      - name: Log in to Docker Hub
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
+        with:
+          username: lubani27
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Verify, stage, and promote tested image digests
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          WORKFLOW_SHA: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_DIR: ${{ runner.temp }}/tested-images
+        run: node scripts/publish-tested-images.mjs

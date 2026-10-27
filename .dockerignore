@@ -1,0 +1,17 @@
+.git
+.github
+.env
+.env.*
+**/.env
+**/.env.*
+.artifacts
+.ruff_cache
+node_modules
+web/node_modules
+web/dist
+processing/.venv
+processing/.pytest_cache
+processing/.ruff_cache
+out
+coverage
+npm-debug.log

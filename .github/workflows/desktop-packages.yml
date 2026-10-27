@@ -1,0 +1,116 @@
+name: Desktop packages
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-packages-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  development-smoke:
+    name: Desktop development preview
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run desktop:dev:smoke
+
+  package:
+    name: ${{ matrix.label }} app
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Windows
+            os: windows-latest
+          - label: macOS
+            os: macos-latest
+          - label: Linux
+            os: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot
+      - run: npm ci
+      - run: npm run test:desktop
+      - run: npm run desktop:make
+      - name: Prepare space-free Linux app path
+        if: runner.os == 'Linux'
+        run: mv "out/desktop/NISAR Surface Change-linux-x64" out/desktop/nisar-app
+      - name: Configure Chromium sandbox helper
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          helper="$(find out/desktop -type f -name chrome-sandbox -print -quit)"
+          test -n "$helper" || { echo "Packaged Chromium sandbox helper was not found." >&2; exit 1; }
+          workspace="$(realpath "$GITHUB_WORKSPACE")"
+          helper="$(realpath "$helper")"
+          case "$helper" in
+            "$workspace"/out/desktop/*) ;;
+            *) echo "Sandbox helper resolved outside the package output." >&2; exit 1 ;;
+          esac
+          test -f "$helper" && test ! -L "$helper"
+          sudo chown --no-dereference root:root "$helper"
+          sudo chmod 4755 "$helper"
+      - if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum npm run desktop:smoke
+        env:
+          NISAR_DESKTOP_PACKAGE_DIR: out/desktop/nisar-app
+      - if: runner.os != 'Linux'
+        run: npm run desktop:smoke
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nisar-desktop-${{ matrix.label }}-${{ github.run_id }}
+          path: out/desktop/make/**/*
+          if-no-files-found: error
+          retention-days: 7
+
+  container-smoke:
+    name: Linux desktop container (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+            platform: linux/amd64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Build the native container image
+        run: docker buildx build --platform ${{ matrix.platform }} --load --tag nisar-surface-change:ci .
+      - name: Check password enforcement, Electron preview, and noVNC
+        env:
+          NISAR_CONTAINER_ARCH: ${{ matrix.arch }}
+        run: node tests/docker-image-smoke.mjs
