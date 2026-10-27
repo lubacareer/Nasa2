@@ -37,17 +37,18 @@ Installers are written under `out/desktop/make`. PR builds are unsigned, so Wind
 
 The public Linux image is published at [`lubani27/nisar-surface-change`](https://hub.docker.com/r/lubani27/nisar-surface-change). PR images use `pr-<number>` tags; commit builds use `sha-<commit>`. The container runs the Linux Electron desktop under a virtual display and provides a noVNC page for viewing it.
 
-Run it locally with a private, exactly eight-character VNC password (the VNC protocol ignores characters after the eighth), and keep the published port bound to the local machine:
+From the repository root, run it locally with a private, exactly eight-character VNC password (the VNC protocol ignores characters after the eighth), and keep the published port bound to the local machine:
 
 ```powershell
 $env:VNC_PASSWORD = Read-Host 'Enter a private 8-character VNC password'
-docker run --rm --security-opt seccomp=unconfined -e VNC_PASSWORD -p 127.0.0.1:6080:6080 lubani27/nisar-surface-change:pr-123
+$seccompProfile = (Resolve-Path .\docker\seccomp-profile.json).Path
+docker run --rm --security-opt "seccomp=$seccompProfile" -e VNC_PASSWORD -p 127.0.0.1:6080:6080 lubani27/nisar-surface-change:pr-123
 Remove-Item Env:VNC_PASSWORD
 ```
 
 Replace `123` with the PR number. Then open <http://127.0.0.1:6080/vnc.html>, select **Connect**, and enter the VNC password. The VNC server itself only listens inside the container; port 6080 carries the browser display connection.
 
-Docker's default seccomp profile blocks the Linux namespace operation Electron's Chromium sandbox needs in this desktop container. The command relaxes that host syscall filter so Chromium can start its renderer sandbox; the app still runs as a non-root user and its Electron renderer remains sandboxed. Use this option only with a trusted image.
+The container runs as a non-root user. Its custom seccomp profile is based on the current [Moby seccomp profile](https://github.com/moby/profiles/tree/seccomp/v0.2.4/seccomp), adds the `clone` and `unshare` namespace operations needed by Chromium's renderer sandbox, and omits the legacy 32-bit `socketcall` syscall from the base allowlist. Other syscall restrictions from the base profile remain in effect. Docker documents how a custom profile is applied with [`--security-opt seccomp=<path>`](https://docs.docker.com/engine/security/seccomp/).
 
 To install the Python environment and verify the fixture:
 

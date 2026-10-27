@@ -1,13 +1,22 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
+import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
 const image = 'nisar-surface-change:ci';
 const container = 'nisar-docker-image-smoke';
 const resultPath = '/tmp/desktop-smoke-result.json';
+const seccompProfilePath = path.resolve('docker/seccomp-profile.json');
 const port = 6080;
 const vncPassword = randomBytes(4).toString('hex');
+const seccompProfile = JSON.parse(fs.readFileSync(seccompProfilePath, 'utf8'));
+
+assert.equal(seccompProfile.defaultAction, 'SCMP_ACT_ERRNO');
+assert.ok(seccompProfile.syscalls.some((rule) => rule.action === 'SCMP_ACT_ALLOW' && rule.names.includes('clone')));
+assert.ok(seccompProfile.syscalls.some((rule) => rule.action === 'SCMP_ACT_ALLOW' && rule.names.includes('unshare')));
+assert.ok(!seccompProfile.syscalls.some((rule) => rule.action === 'SCMP_ACT_ALLOW' && rule.names.includes('socketcall')));
 
 function docker(args, { allowFailure = false } = {}) {
   const result = spawnSync('docker', args, {
@@ -52,7 +61,7 @@ try {
 
   docker([
     'run', '--detach', '--name', container,
-    '--security-opt', 'seccomp=unconfined',
+    '--security-opt', `seccomp=${seccompProfilePath}`,
     '--publish', `127.0.0.1:${port}:6080`,
     '--env', `VNC_PASSWORD=${vncPassword}`,
     '--env', 'CI=true',
@@ -81,6 +90,20 @@ try {
     `Expected all four plots to load. ${JSON.stringify(smokeResult)}`);
   assert.match(smokeResult.pairedCount, /^\d+ paired valid pixels$/);
   assert.ok(noVncReady, 'noVNC did not return its page on the loopback port.');
+
+  const vncPid = docker(['exec', container, 'cat', '/tmp/nisar-x11vnc.pid']).stdout.trim();
+  assert.match(vncPid, /^\d+$/, 'The smoke entrypoint should report the x11vnc PID.');
+  docker(['exec', container, '/bin/sh', '-c', `kill -TERM ${vncPid}`]);
+  let containerExitCode = null;
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const running = docker(['inspect', '--format', '{{.State.Running}}', container], { allowFailure: true });
+    if (running.status === 0 && running.stdout.trim() === 'false') {
+      containerExitCode = Number(docker(['inspect', '--format', '{{.State.ExitCode}}', container]).stdout.trim());
+      break;
+    }
+    await delay(500);
+  }
+  assert.equal(containerExitCode, 1, 'The container should stop unsuccessfully when x11vnc exits.');
 
   console.log(`Linux ${process.env.NISAR_CONTAINER_ARCH} container loaded all plots and synthetic provenance (${smokeResult.pairedCount}); noVNC returned HTTP 200.`);
 } catch (error) {

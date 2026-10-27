@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
 
 if [ -n "${VNC_PASSWORD_FILE:-}" ]; then
@@ -53,6 +53,7 @@ fi
 
 x11vnc -display "$DISPLAY" -forever -shared -localhost -rfbport 5900 -passwdfile "rm:$vnc_passfile" -quiet &
 vnc_pid=$!
+if [ "${NISAR_DESKTOP_SMOKE:-}" = "1" ]; then printf '%s\n' "$vnc_pid" >/tmp/nisar-x11vnc.pid; fi
 websockify --heartbeat 30 --web /usr/share/novnc 6080 127.0.0.1:5900 &
 websockify_pid=$!
 
@@ -64,4 +65,17 @@ fi
 
 "$app_path" --disable-gpu &
 app_pid=$!
-wait "$app_pid"
+
+if wait -n -p finished_pid "$app_pid" "$websockify_pid" "$vnc_pid"; then
+  process_status=0
+else
+  process_status=$?
+fi
+
+if [ "$finished_pid" != "$app_pid" ]; then
+  if [ "$finished_pid" = "$vnc_pid" ]; then bridge_name=x11vnc; else bridge_name=websockify; fi
+  echo "$bridge_name exited unexpectedly (status $process_status)." >&2
+  exit 1
+fi
+
+exit "$process_status"
