@@ -41,6 +41,21 @@ jobs:
       - run: npm ci
       - run: npm run test:desktop
       - run: npm run desktop:make
+      - name: Configure Chromium sandbox helper
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          helper="$(find out/desktop -type f -name chrome-sandbox -print -quit)"
+          test -n "$helper" || { echo "Packaged Chromium sandbox helper was not found." >&2; exit 1; }
+          workspace="$(realpath "$GITHUB_WORKSPACE")"
+          helper="$(realpath "$helper")"
+          case "$helper" in
+            "$workspace"/out/desktop/*) ;;
+            *) echo "Sandbox helper resolved outside the package output." >&2; exit 1 ;;
+          esac
+          test -f "$helper" && test ! -L "$helper"
+          sudo chown --no-dereference root:root "$helper"
+          sudo chmod 4755 "$helper"
       - if: runner.os == 'Linux'
         run: xvfb-run --auto-servernum npm run desktop:smoke
       - if: runner.os != 'Linux'

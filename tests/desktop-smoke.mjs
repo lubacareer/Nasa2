@@ -21,22 +21,27 @@ delete childEnvironment.ELECTRON_RUN_AS_NODE;
 childEnvironment.CI = 'true';
 childEnvironment.NISAR_DESKTOP_SMOKE = '1';
 childEnvironment.NISAR_DESKTOP_SMOKE_RESULT_FILE = resultPath;
+let stderr = '';
 const processHandle = spawn(executable, [], {
   env: childEnvironment,
-  stdio: 'ignore',
+  stdio: ['ignore', 'ignore', 'pipe'],
   detached: process.platform !== 'win32',
+});
+processHandle.stderr.setEncoding('utf8');
+processHandle.stderr.on('data', (chunk) => {
+  if (stderr.length < 8_000) stderr += chunk.slice(0, 8_000 - stderr.length);
 });
 
 async function waitForSmokeResult() {
   const deadline = Date.now() + 60_000;
   while (Date.now() < deadline) {
     if (processHandle.exitCode !== null) {
-      throw new Error(`Packaged app exited before its window was ready (code ${processHandle.exitCode}).`);
+      throw new Error(`Packaged app exited before its window was ready (code ${processHandle.exitCode}). stderr: ${stderr}`);
     }
     if (fs.existsSync(resultPath)) return JSON.parse(fs.readFileSync(resultPath, 'utf8'));
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
-  throw new Error('Packaged app did not report its loaded preview and plots within 60 seconds.');
+  throw new Error(`Packaged app did not report its loaded preview and plots within 60 seconds. stderr: ${stderr}`);
 }
 
 try {
