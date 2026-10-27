@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 const appName = 'nisar-surface-change';
+const development = process.argv.includes('--dev');
 const appDirectory = `NISAR Surface Change-${process.platform}-${process.arch}`;
 const outputDirectory = path.resolve(process.env.NISAR_DESKTOP_PACKAGE_DIR
   || path.join(process.env.ELECTRON_OUT_DIR || 'out/desktop', appDirectory));
@@ -11,7 +12,7 @@ const executable = process.platform === 'darwin'
   ? path.join(outputDirectory, 'NISAR Surface Change.app', 'Contents', 'MacOS', appName)
   : path.join(outputDirectory, process.platform === 'win32' ? `${appName}.exe` : appName);
 
-if (!fs.existsSync(executable)) {
+if (!development && !fs.existsSync(executable)) {
   throw new Error(`Packaged desktop executable was not found at ${executable}`);
 }
 
@@ -23,13 +24,20 @@ childEnvironment.CI = 'true';
 childEnvironment.NISAR_DESKTOP_SMOKE = '1';
 childEnvironment.NISAR_DESKTOP_SMOKE_RESULT_FILE = resultPath;
 let stderr = '';
-const processHandle = spawn(executable, [], {
+const command = development ? process.execPath : executable;
+const args = development ? [process.env.npm_execpath, 'run', 'desktop:dev'] : [];
+if (development && !process.env.npm_execpath) throw new Error('Run this smoke test through npm run desktop:dev:smoke.');
+const processHandle = spawn(command, args, {
   env: childEnvironment,
-  stdio: ['ignore', 'ignore', 'pipe'],
+  stdio: ['ignore', 'pipe', 'pipe'],
   detached: process.platform !== 'win32',
 });
 processHandle.stderr.setEncoding('utf8');
 processHandle.stderr.on('data', (chunk) => {
+  if (stderr.length < 8_000) stderr += chunk.slice(0, 8_000 - stderr.length);
+});
+processHandle.stdout.setEncoding('utf8');
+processHandle.stdout.on('data', (chunk) => {
   if (stderr.length < 8_000) stderr += chunk.slice(0, 8_000 - stderr.length);
 });
 
@@ -54,6 +62,9 @@ async function waitForSmokeResult() {
 try {
   const result = await waitForSmokeResult();
   if (result.error) throw new Error(`Packaged renderer smoke check failed: ${result.error}`);
+  if (result.consoleErrors?.length || result.loadFailures?.length) {
+    throw new Error(`Renderer reported errors: ${JSON.stringify({ consoleErrors: result.consoleErrors, loadFailures: result.loadFailures })}`);
+  }
   if (result.title !== 'NISAR Surface Change') throw new Error(`Unexpected packaged app title: ${result.title}; result ${JSON.stringify(result)}`);
   if (result.provenance !== 'Synthetic preview — no satellite measurements') {
     throw new Error('The packaged app did not retain its synthetic-data provenance banner.');
@@ -76,7 +87,7 @@ try {
   if (!result.nodeIntegrationDisabled) {
     throw new Error('Node.js globals were available in the packaged renderer.');
   }
-  console.log(`Packaged ${process.platform}/${process.arch} app loaded all plots and the synthetic preview (${result.pairedCount}).`);
+  console.log(`${development ? 'Development' : 'Packaged'} ${process.platform}/${process.arch} app loaded all plots and the synthetic preview (${result.pairedCount}).`);
 } finally {
   if (process.platform === 'win32') {
     try {

@@ -28,10 +28,13 @@ function isTrustedRendererUrl(value) {
 function installSmokeReporter(window) {
   if (!smokeRun || !smokeResultPath) return;
   const consoleMessages = [];
+  const consoleErrors = [];
   const loadFailures = [];
   window.webContents.on('console-message', (...args) => {
-    const text = args.filter((value) => typeof value === 'string').join(' ');
+    const details = args.find((value) => value && typeof value === 'object' && typeof value.message === 'string');
+    const text = details?.message || args.filter((value) => typeof value === 'string').join(' ');
     if (text) consoleMessages.push(text.slice(0, 500));
+    if (details?.level === 'error' || args[1] === 3) consoleErrors.push(text.slice(0, 500));
   });
   window.webContents.on('did-fail-load', (_event, code, description, url) => {
     loadFailures.push({ code, description, url });
@@ -65,6 +68,7 @@ function installSmokeReporter(window) {
         ...result,
         rendererSandboxed: window.webContents.getLastWebPreferences()?.sandbox === true,
         consoleMessages,
+        consoleErrors,
         loadFailures,
         assetRequests,
       }));

@@ -45,6 +45,9 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      - run: npm run test:validator
+      - run: node --test tests/publish-guards.test.mjs
+      - run: npm run test:dev
       - run: npm run test:runner
       - run: npm run test:e2e
         env:

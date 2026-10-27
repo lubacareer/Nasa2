@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS desktop-build
+FROM --platform=$BUILDPLATFORM node:22-bookworm-slim@sha256:de170b39439eb0e5a3444ad7d60b015614a381e10fecae2e30ec9e735122f38d AS desktop-build
 
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -16,15 +16,23 @@ RUN npm run build \
     && npm exec -- electron-forge package --platform=linux --arch="$electron_arch" \
     && mv "out/desktop/NISAR Surface Change-linux-$electron_arch" out/desktop/nisar-app
 
-FROM debian:bookworm-slim AS runtime
+FROM debian:bookworm-slim@sha256:7ff6ba31527b9e336162fa061746c366c4b2032f4d2cff2078bea43f78efe3f8 AS runtime
 
 ENV DISPLAY=:99 \
     HOME=/home/nisar \
     NO_AT_BRIDGE=1
 
-RUN apt-get update \
+RUN rm -f /etc/apt/sources.list /etc/apt/sources.list.d/debian.sources \
+    && printf '%s\n' \
+      'deb [check-valid-until=no signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] http://snapshot.debian.org/archive/debian/20261026T000000Z/ bookworm main' \
+      'deb [check-valid-until=no signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] http://snapshot.debian.org/archive/debian/20261026T000000Z/ bookworm-updates main' \
+      'deb [check-valid-until=no signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] http://snapshot.debian.org/archive/debian-security/20261026T000000Z/ bookworm-security main' \
+      > /etc/apt/sources.list.d/nisar-snapshot.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && sed -i 's|http://snapshot.debian.org/|https://snapshot.debian.org/|g' /etc/apt/sources.list.d/nisar-snapshot.list \
+    && apt-get update \
     && apt-get install -y --no-install-recommends \
-      ca-certificates \
       fonts-liberation \
       libasound2 \
       libatk-bridge2.0-0 \

@@ -2,6 +2,7 @@ import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { browserEsm } from './validator-esm.mjs';
 
 const require = createRequire(import.meta.url);
 const Ajv2020 = require('ajv/dist/2020');
@@ -13,7 +14,7 @@ const declarationPath = path.join(root, 'web', 'src', 'generated', 'study-datase
 const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
 const ajv = new Ajv2020({ allErrors: true, code: { esm: true, source: true } });
 const validate = ajv.compile(schema);
-const generatedCode = `${standaloneCode(ajv, validate).trimEnd()}\n`;
+const generatedCode = browserEsm(standaloneCode(ajv, validate));
 const declaration = [
   "import type { ValidateFunction } from 'ajv';",
   "import type { StudyDataset } from '../../../contracts/dataset';",

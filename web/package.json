@@ -11,6 +11,7 @@
     "test": "vitest run",
     "build": "tsc --noEmit && vite build",
     "test:e2e": "playwright test",
+    "test:dev": "playwright test --config dev-smoke/playwright.config.ts",
     "test:stability": "playwright test --config playwright.stability.config.ts"
   },
   "dependencies": {
