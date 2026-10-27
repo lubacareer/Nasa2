@@ -50,6 +50,7 @@ function installSmokeReporter(window) {
             histogram: Boolean(document.querySelector('[data-testid="change-histogram"]')),
             spatial: Boolean(document.querySelector('[data-testid="spatial-grid"]')),
             pairedCount: document.querySelector('[data-testid="paired-count"]')?.textContent?.trim() || '',
+            nodeIntegrationDisabled: typeof require === 'undefined' && typeof process === 'undefined',
           };
           if ((value.timeSeries && value.coverage && value.histogram && value.spatial) || attempts >= 400) {
             resolve(value);
@@ -60,7 +61,13 @@ function installSmokeReporter(window) {
         };
         inspect();
       })`);
-      fs.writeFileSync(smokeResultPath, JSON.stringify({ ...result, consoleMessages, loadFailures, assetRequests }));
+      fs.writeFileSync(smokeResultPath, JSON.stringify({
+        ...result,
+        rendererSandboxed: window.webContents.getLastWebPreferences()?.sandbox === true,
+        consoleMessages,
+        loadFailures,
+        assetRequests,
+      }));
     } catch (error) {
       fs.writeFileSync(smokeResultPath, JSON.stringify({ error: String(error), consoleMessages, loadFailures, assetRequests }));
     }

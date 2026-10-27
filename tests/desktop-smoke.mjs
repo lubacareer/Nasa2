@@ -70,6 +70,12 @@ try {
   if (!/^\d+ paired valid pixels$/.test(result.pairedCount)) {
     throw new Error(`Unexpected packaged comparison count: ${result.pairedCount}`);
   }
+  if (!result.rendererSandboxed) {
+    throw new Error('The packaged renderer did not report Electron sandbox mode as enabled.');
+  }
+  if (!result.nodeIntegrationDisabled) {
+    throw new Error('Node.js globals were available in the packaged renderer.');
+  }
   console.log(`Packaged ${process.platform}/${process.arch} app loaded all plots and the synthetic preview (${result.pairedCount}).`);
 } finally {
   if (process.platform === 'win32') {

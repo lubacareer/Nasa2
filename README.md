@@ -48,7 +48,7 @@ Remove-Item Env:VNC_PASSWORD
 
 Replace `123` with the PR number. Then open <http://127.0.0.1:6080/vnc.html>, select **Connect**, and enter the VNC password. The VNC server itself only listens inside the container; port 6080 carries the browser display connection.
 
-The container runs as a non-root user. Its custom seccomp profile is based on the current [Moby seccomp profile](https://github.com/moby/profiles/tree/seccomp/v0.2.4/seccomp), adds the `clone` and `unshare` namespace operations needed by Chromium's renderer sandbox, and omits the legacy 32-bit `socketcall` syscall from the base allowlist. Other syscall restrictions from the base profile remain in effect. Docker documents how a custom profile is applied with [`--security-opt seccomp=<path>`](https://docs.docker.com/engine/security/seccomp/).
+The container runs as a non-root user. Its custom seccomp profile is based on the current [Moby seccomp profile](https://github.com/moby/profiles/tree/seccomp/v0.2.4/seccomp) and omits the legacy 32-bit `socketcall` syscall from the base allowlist. It permits only Chromium's `CLONE_NEWUSER` probe, `CLONE_NEWPID` renderer-child isolation, and `CLONE_NEWUSER | CLONE_NEWPID | CLONE_NEWNET` renderer sandbox combination; other namespace flags remain blocked. Docker documents how a custom profile is applied with [`--security-opt seccomp=<path>`](https://docs.docker.com/engine/security/seccomp/).
 
 To install the Python environment and verify the fixture:
 

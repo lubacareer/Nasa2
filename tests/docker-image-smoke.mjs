@@ -6,7 +6,7 @@ import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
 const image = 'nisar-surface-change:ci';
-const containerName = 'nisar-docker-image-smoke';
+const containerName = `nisar-docker-image-smoke-${process.pid}-${randomBytes(4).toString('hex')}`;
 const resultPath = '/tmp/desktop-smoke-result.json';
 const seccompProfilePath = path.resolve('docker/seccomp-profile.json');
 const port = 6080;
@@ -15,8 +15,31 @@ let containerId = null;
 const seccompProfile = JSON.parse(fs.readFileSync(seccompProfilePath, 'utf8'));
 
 assert.equal(seccompProfile.defaultAction, 'SCMP_ACT_ERRNO');
-assert.ok(seccompProfile.syscalls.some((rule) => rule.action === 'SCMP_ACT_ALLOW' && rule.names.includes('clone')));
-assert.ok(seccompProfile.syscalls.some((rule) => rule.action === 'SCMP_ACT_ALLOW' && rule.names.includes('unshare')));
+const chromiumNamespaceRules = seccompProfile.syscalls.filter((rule) => rule.comment?.startsWith('Chromium sandbox'));
+const allowedCloneNamespaces = chromiumNamespaceRules
+  .filter((rule) => rule.names.includes('clone'))
+  .map((rule) => rule.args[0].valueTwo)
+  .sort((left, right) => left - right);
+assert.deepEqual(allowedCloneNamespaces, [268435456, 268435456, 536870912, 536870912, 1879048192, 1879048192]);
+assert.ok(chromiumNamespaceRules
+  .filter((rule) => rule.names.includes('clone'))
+  .every((rule) => rule.args[0].value === 2114060288 && rule.excludes?.caps?.includes('CAP_SYS_ADMIN')));
+assert.ok(chromiumNamespaceRules
+  .filter((rule) => rule.names.includes('clone') && rule.args[0].index === 0)
+  .every((rule) => rule.excludes?.arches?.includes('s390') && rule.excludes?.arches?.includes('s390x')));
+assert.ok(chromiumNamespaceRules.some((rule) =>
+  rule.names.includes('unshare')
+  && rule.args[0].index === 0
+  && rule.args[0].value === 2114060288
+  && rule.args[0].valueTwo === 268435456
+  && rule.excludes?.caps?.includes('CAP_SYS_ADMIN'),
+));
+assert.ok(!seccompProfile.syscalls.some((rule) =>
+  rule.action === 'SCMP_ACT_ALLOW'
+  && rule.names.some((name) => ['clone', 'unshare'].includes(name))
+  && !rule.args?.length
+  && !rule.includes?.caps?.length,
+), 'Namespace creation must retain the upstream capability and flag restrictions.');
 assert.ok(!seccompProfile.syscalls.some((rule) => rule.action === 'SCMP_ACT_ALLOW' && rule.names.includes('socketcall')));
 
 function docker(args, { allowFailure = false } = {}) {
@@ -101,6 +124,8 @@ try {
   assert.ok(smokeResult.timeSeries && smokeResult.coverage && smokeResult.histogram && smokeResult.spatial,
     `Expected all four plots to load. ${JSON.stringify(smokeResult)}`);
   assert.match(smokeResult.pairedCount, /^\d+ paired valid pixels$/);
+  assert.equal(smokeResult.rendererSandboxed, true, 'The Linux Electron renderer should run sandboxed.');
+  assert.equal(smokeResult.nodeIntegrationDisabled, true, 'Node.js globals should not be available in the Linux renderer.');
   assert.ok(noVncReady, 'noVNC did not return its page on the loopback port.');
 
   const vncPid = docker(['exec', containerId, 'cat', '/tmp/nisar-x11vnc.pid']).stdout.trim();
